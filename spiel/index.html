@@ -17,24 +17,55 @@
   </head>
   <body>
     <h1>🎮 Spiel</h1>
-    <!-- v0.3 – Einsicht + Tageswahl (Anzeige-seitig nur Einsicht-Snippet); v0.3.1 – sicheres Rendering -->
-    <p class="muted">Artefakte aus deinem Journal (letzte 10 Tage). Alles bleibt lokal im Browser.</p>
+    <!-- v0.3 – Einsicht + Tageswahl (Anzeige-seitig nur Einsicht-Snippet); v0.3.1 – sicheres Rendering; v0.4 – Regal (Shelf) + Story/Minispiele -->
+    <p class="muted">Dein Regal mit Artefakten (letzte 10 Einträge) – aus Begleiter, Story und Minispielen. Alles bleibt lokal.</p>
+
+    <div class="row" style="margin: 10px 0 20px 0">
+      <a class="pill" href="./story/index.html" title="Interaktive Geschichte">Der Zwischenraum</a>
+      <a class="pill" href="./minispiele/index.html" title="Kleine, bewusste Spiele">Minispiele</a>
+    </div>
 
     <div class="grid" id="artifacts"></div>
 
     <p><a href="../index.html">← Zurück zur Startseite</a></p>
 
     <script>
-      // Liest localStorage "vlfl_journal" und zeigt Artefakte an. Kein Tracking.
-      const raw = localStorage.getItem('vlfl_journal') || '{}';
-      let data;
-      try { data = JSON.parse(raw) || {}; } catch { data = {}; }
-      const arr = Object.entries(data).sort((a,b)=> b[0].localeCompare(a[0]));
-      const last10 = arr.slice(0, 10).map(([date, entry]) => ({
-        date,
-        artifact: entry?.artifact || '',
-        insight: entry?.insight || ''
-      })).filter(x => x.artifact);
+      // Liest Artefakte aus Journal (Rückkompatibilität) und Regal (vlfl_shelf).
+      function parseJSON(text, fallback) { try { return JSON.parse(text); } catch { return fallback; } }
+
+      // Journal-Einträge (pro Tag max 1 Artefakt, historisch)
+      const journal = parseJSON(localStorage.getItem('vlfl_journal') || '{}', {});
+      const journalItems = Object.entries(journal)
+        .filter(([,entry]) => entry && typeof entry === 'object' && entry.artifact)
+        .map(([date, entry]) => ({
+          id: `journal-${date}`,
+          dateTime: `${date}T12:00:00.000Z`,
+          date,
+          kind: 'journal',
+          source: 'Begleiter',
+          artifact: entry.artifact,
+          insight: entry.insight || ''
+        }));
+
+      // Regal (Shelf): frei befüllbar durch Story/Minispiele/Begleiter
+      const shelf = parseJSON(localStorage.getItem('vlfl_shelf') || '[]', []);
+      const shelfItems = Array.isArray(shelf) ? shelf
+        .filter(it => it && typeof it === 'object' && typeof it.content === 'string')
+        .map(it => ({
+          id: it.id || `shelf-${Math.random().toString(36).slice(2)}`,
+          dateTime: it.dateTime || (it.date ? `${it.date}T12:00:00.000Z` : new Date().toISOString()),
+          date: (it.date || (it.dateTime ? it.dateTime.slice(0,10) : new Date().toISOString().slice(0,10))),
+          kind: it.kind || 'shelf',
+          source: it.source || 'Regal',
+          title: it.title || 'Artefakt',
+          artifact: it.content,
+          insight: it.insight || ''
+        })) : [];
+
+      // Mergen und sortieren
+      const all = [...shelfItems, ...journalItems]
+        .sort((a,b) => (b.dateTime || '').localeCompare(a.dateTime || ''))
+        .slice(0, 10);
 
       const box = document.getElementById('artifacts');
 
@@ -46,7 +77,17 @@
         link.textContent = 'Begleiter';
         card.appendChild(document.createTextNode('Noch keine Artefakte. Erzeuge eins im '));
         card.appendChild(link);
-        card.appendChild(document.createTextNode(' (Plan & Reflexion), dann erscheint es hier.'));
+        card.appendChild(document.createTextNode(' (Plan & Reflexion), spiele die '));
+        const link2 = document.createElement('a');
+        link2.href = './minispiele/index.html';
+        link2.textContent = 'Minispiele';
+        card.appendChild(link2);
+        card.appendChild(document.createTextNode(' oder starte die '));
+        const link3 = document.createElement('a');
+        link3.href = './story/index.html';
+        link3.textContent = 'Story';
+        card.appendChild(link3);
+        card.appendChild(document.createTextNode('.'));
         box.appendChild(card);
       }
 
@@ -60,9 +101,13 @@
         badge.title = 'Datum';
         badge.textContent = item.date;
         const title = document.createElement('strong');
-        title.textContent = 'Artefakt';
+        title.textContent = item.title || 'Artefakt';
+        const src = document.createElement('span');
+        src.className = 'muted';
+        src.textContent = ` · ${item.source}`;
         row.appendChild(badge);
         row.appendChild(title);
+        row.appendChild(src);
         const pre = document.createElement('pre');
         pre.textContent = item.artifact;
         card.appendChild(row);
@@ -76,10 +121,10 @@
         box.appendChild(card);
       }
 
-      if (!last10.length) {
+      if (!all.length) {
         renderEmpty();
       } else {
-        last10.forEach(renderItem);
+        all.forEach(renderItem);
       }
     </script>
   </body>

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Echo-Karten – Demo</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:12px }
+    .card { border:1px solid #e5e7eb; border-radius:12px; padding:14px }
+    button { padding:10px 14px; border:1px solid #d1d5db; border-radius:10px; background:#fff; cursor:pointer }
+    .muted { color:#6b7280 }
+    pre { background:#f6f8fa; padding:12px; border-radius:10px; overflow:auto }
+  </style>
+</head>
+<body>
+  <h1>🎴 Echo-Karten – Demo</h1>
+  <p class="muted">Ziehe eine Karte. Du bekommst einen kurzen Impuls und ein Mini-Ritual. Alles offline.</p>
+
+  <div class="grid">
+    <div class="card">
+      <button id="draw">Karte ziehen</button>
+      <pre id="out">Noch keine Karte.</pre>
+    </div>
+    <p><a href="../index.html">← Zurück zum Spiele-Hub</a></p>
+  </div>
+
+  <script>
+    const deck = [
+      {k:"Klarheit", hint:"Ein Satz, der Ordnung schafft.", ritual:"2 Minuten Schreibtisch frei räumen."},
+      {k:"Mut", hint:"Ein kleiner Schritt in Richtung Wahrheit.", ritual:"Sende 1 ehrliche Nachricht."},
+      {k:"Leichtigkeit", hint:"Was macht dich heute weich?", ritual:"5 tiefe Atemzüge am Fenster."},
+      {k:"Dankbarkeit", hint:"3 Dinge, die schon da sind.", ritual:"Notiere sie handschriftlich."},
+      {k:"Fokus", hint:"Was ist heute wesentlich?", ritual:"Stelle 25 Minuten Timer."},
+      {k:"Balance", hint:"Wo brauchst du Ausgleich?", ritual:"1 Glas Wasser, kurze Dehnung."},
+      {k:"Verbindung", hint:"Wen kannst du kurz grüßen?", ritual:"Schicke ein Emoji. :)"},
+      {k:"Ruhe", hint:"Wo darf Stille sein?", ritual:"1 Minute Augen schließen."},
+      {k:"Neugier", hint:"Was willst du erforschen?", ritual:"Suche 1 Begriff nach."},
+      {k:"Ordnung", hint:"Wohin mit dem losen Ende?", ritual:"Erledige 1 Miniaufgabe."},
+      {k:"Humor", hint:"Worüber lächelst du?", ritual:"Hör 1 witzigen Clip."},
+      {k:"Zutrauen", hint:"Was traust du dir zu?", ritual:"Sag dir innerlich: ‚Ich schaffe das.‘"}
+    ];
+    document.getElementById("draw").onclick = () => {
+      const c = deck[Math.floor(Math.random()*deck.length)];
+      document.getElementById("out").textContent = `🃏 ${c.k}\n• Hinweis: ${c.hint}\n• Mini-Ritual: ${c.ritual}`;
+    };
+  </script>
+</body>
+</html>

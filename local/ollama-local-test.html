@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ollama Lokal – Testseite (gemma3:1b)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+    h1 { margin-bottom: .2em }
+    .muted { color: #6b7280 }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    button { padding: 10px 14px; border:1px solid #d1d5db; border-radius: 10px; background:#fff; cursor:pointer; }
+    input, textarea { width: 100%; padding: 10px; border:1px solid #e5e7eb; border-radius: 10px; font-family: inherit; }
+    textarea { min-height: 80px; }
+    pre { background:#f6f8fa; padding:12px; border-radius:10px; overflow:auto; }
+    .card { border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin-top: 12px; }
+    .warn { color:#92400e }
+  </style>
+</head>
+<body>
+  <h1>Ollama Lokal – Test (gemma3:1b)</h1>
+  <p class="muted">Diese Seite ist zum lokalen Testen gedacht. <strong>Nicht über GitHub Pages öffnen</strong> (HTTPS blockt lokale HTTP-Aufrufe). Stattdessen lokal als <code>file://</code> oder über einen lokalen Dev-Server.</p>
+
+  <div class="card">
+    <div class="row">
+      <button id="check">Dienst prüfen (/api/tags)</button>
+      <button id="pull">Modell ziehen (gemma3:1b)</button>
+    </div>
+    <pre id="log">Bereit.</pre>
+  </div>
+
+  <div class="card">
+    <label><strong>Chat-Test</strong> (sendet an <code>http://localhost:11434/api/chat</code>)</label>
+    <textarea id="prompt" placeholder="Frag etwas Kurzes, z. B.: Sag Hallo in einem Satz."></textarea>
+    <div class="row">
+      <button id="chat">Chat senden</button>
+    </div>
+    <pre id="out">Noch keine Antwort.</pre>
+  </div>
+
+  <p class="warn">
+    Hinweis: Wenn hier Fehler wie <em>Mixed Content</em> oder <em>CORS</em> auftauchen, öffne diese HTML bitte lokal (nicht über HTTPS) und stelle sicher, dass Ollama läuft.
+  </p>
+
+  <script>
+    const log = (msg) => {
+      const el = document.getElementById('log');
+      el.textContent = (el.textContent ? el.textContent + "\n" : "") + msg;
+    };
+
+    const checkBtn = document.getElementById('check');
+    const pullBtn  = document.getElementById('pull');
+    const chatBtn  = document.getElementById('chat');
+    const outEl    = document.getElementById('out');
+    const promptEl = document.getElementById('prompt');
+
+    if (location.protocol === "https:") {
+      log("⚠️ Diese Seite über HTTPS geöffnet – lokale HTTP-Aufrufe werden vom Browser blockiert. Bitte lokal öffnen.");
+    }
+
+    checkBtn.onclick = async () => {
+      log("Prüfe Dienst unter http://localhost:11434/api/tags ...");
+      try {
+        const res = await fetch("http://localhost:11434/api/tags");
+        const data = await res.json();
+        log("OK: /api/tags Antwort:");
+        log(JSON.stringify(data, null, 2));
+      } catch (err) {
+        log("Fehler beim Abruf von /api/tags: " + err);
+      }
+    };
+
+    pullBtn.onclick = async () => {
+      log("Starte Pull für Modell 'gemma3:1b' ...");
+      try {
+        const res = await fetch("http://localhost:11434/api/pull", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ name: "gemma3:1b" })
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          log(decoder.decode(value));
+        }
+        log("Pull abgeschlossen (oder Stream beendet).");
+      } catch (err) {
+        log("Fehler beim Pull: " + err);
+      }
+    };
+
+    chatBtn.onclick = async () => {
+      outEl.textContent = "Sende an Ollama ...";
+      try {
+        const res = await fetch("http://localhost:11434/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "gemma3:1b",
+            messages: [{ role:"user", content: promptEl.value || "Sag Hallo in einem Satz." }],
+            stream: false
+          })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        outEl.textContent = data?.message?.content || JSON.stringify(data, null, 2);
+      } catch (err) {
+        outEl.textContent = "Fehler: " + err;
+      }
+    };
+  </script>
+</body>
+</html>

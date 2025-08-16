@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Minenbergbau – Demo</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .card { border:1px solid #e5e7eb; border-radius:12px; padding:14px; margin-top:12px; }
+    .stat { background:#f3f4f6; border-radius:8px; padding:6px 10px; display:inline-block }
+    button { padding:10px 14px; border:1px solid #d1d5db; border-radius:10px; background:#fff; cursor:pointer }
+    .muted { color:#6b7280 }
+    progress { width: 100%; height: 10px }
+  </style>
+</head>
+<body>
+  <h1>⛏️ Minenbergbau – Demo</h1>
+  <p class="muted">Kurze, sanfte Loops. Energie begrenzt die Dauer – kein Dauerklicken nötig. Fortschritt bleibt lokal.</p>
+
+  <div class="card">
+    <div class="row">
+      <div class="stat">🪨 Stein: <span id="stone">0</span></div>
+      <div class="stat">⛓️ Erz: <span id="ore">0</span></div>
+      <div class="stat">⚡ Energie: <span id="energy">10</span>/10</div>
+    </div>
+    <div style="margin-top:10px">
+      <progress id="energyBar" value="10" max="10"></progress>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="mine">Mine (−1 Energie)</button>
+      <button id="rest">Kurz rasten (+3 Energie)</button>
+      <button id="save">Speichern</button>
+      <button id="reset">Zurücksetzen</button>
+    </div>
+    <p id="msg" class="muted"></p>
+  </div>
+
+  <div class="card">
+    <h3>Kleine Fundchance</h3>
+    <p>Bei jedem Minen-Schlag hast du eine kleine Chance auf einen <strong>Artefakt-Fund</strong> (nur Text). Wenn gefunden, taucht es im <a href="../../spiel/index.html">Spiel-Regal</a> auf.</p>
+    <pre id="artifactBox" class="muted">Noch nichts gefunden.</pre>
+  </div>
+
+  <p><a href="../index.html">← Zurück zum Spiele-Hub</a></p>
+
+  <script>
+    const KEY = "vlfl_mining";
+    const JOURNAL = "vlfl_journal"; // für Artefakte (Anbindung an Spiel-Regal)
+
+    const S = {
+      ore: 0, stone: 0, energy: 10, maxEnergy: 10,
+      artifact: "" // letzter Fund
+    };
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (raw) Object.assign(S, JSON.parse(raw));
+      } catch {}
+      updateUI();
+    }
+    function save() {
+      localStorage.setItem(KEY, JSON.stringify(S));
+      msg("Gespeichert.");
+    }
+    function reset() {
+      localStorage.removeItem(KEY);
+      S.ore = 0; S.stone = 0; S.energy = 10; S.maxEnergy = 10; S.artifact = "";
+      updateUI(); msg("Zurückgesetzt.");
+    }
+    function msg(t) {
+      const el = document.getElementById("msg"); el.textContent = t;
+      setTimeout(()=> el.textContent = "", 2000);
+    }
+    function updateUI() {
+      document.getElementById("ore").textContent = S.ore;
+      document.getElementById("stone").textContent = S.stone;
+      document.getElementById("energy").textContent = S.energy;
+      document.getElementById("energyBar").value = S.energy;
+      document.getElementById("artifactBox").textContent = S.artifact || "Noch nichts gefunden.";
+    }
+
+    function rand() { return Math.random(); }
+
+    function tryFindArtifact() {
+      // 8% Chance pro Schlag
+      if (rand() < 0.08) {
+        const finds = [
+          ["Funkenstein", "Zünde eine Kerze an und atme 3x ruhig."],
+          ["Mond-Erz", "5 Minuten ruhiges Gehen, Schultern locker."],
+          ["Erdherz", "Schreibe 1 Satz: Wofür bin ich heute dankbar?"],
+          ["Glanzsplitter", "Schicke eine freundliche Nachricht an jemanden."]
+        ];
+        const [name, ritual] = finds[Math.floor(rand()*finds.length)];
+        const text = `🗝️ Artefakt: ${name}\n• Mini-Ritual: ${ritual}`;
+        S.artifact = text;
+        // Auch ins Journal des heutigen Tages legen, damit es im Spiel-Regal erscheint
+        try {
+          const today = new Date().toISOString().slice(0,10);
+          const j = JSON.parse(localStorage.getItem(JOURNAL) || "{}");
+          j[today] = { ...(j[today]||{}), artifact: text };
+          localStorage.setItem(JOURNAL, JSON.stringify(j));
+        } catch {}
+        updateUI();
+        msg("Du hast ein Artefakt gefunden.");
+      }
+    }
+
+    document.getElementById("mine").onclick = () => {
+      if (S.energy <= 0) return msg("Keine Energie. Kurz rasten hilft.");
+      S.energy -= 1;
+      // 70% Stein, 30% Erz pro Schlag
+      if (rand() < 0.7) S.stone += 1; else S.ore += 1;
+      tryFindArtifact();
+      updateUI();
+    };
+
+    document.getElementById("rest").onclick = () => {
+      S.energy = Math.min(S.maxEnergy, S.energy + 3);
+      updateUI(); msg("Kurz geruht.");
+    };
+
+    document.getElementById("save").onclick = save;
+    document.getElementById("reset").onclick = reset;
+
+    load();
+  </script>
+</body>
+</html>

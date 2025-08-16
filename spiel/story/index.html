@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Der Zwischenraum · Episode 1</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+      .muted { color: #6b7280 }
+      .btn { padding:10px 14px; border:1px solid #d1d5db; border-radius:10px; background:#fff; cursor:pointer }
+      .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+      .pill { background:#f3f4f6; border-radius:999px; padding:6px 10px; font-size:.9rem }
+      pre { background:#f6f8fa; padding:8px; border-radius:10px; white-space:pre-wrap }
+    </style>
+  </head>
+  <body>
+    <h1>🜂 Der Zwischenraum</h1>
+    <p class="muted">Ruhige Episoden. Kurze Entscheidungen. Jedes Ende schenkt dir ein kleines Artefakt fürs Regal.</p>
+
+    <div id="scene" class="card" role="region" aria-live="polite"></div>
+
+    <div class="row" style="margin:14px 0">
+      <button id="prev" class="btn" title="Vorherige Szene">◀︎ Zurück</button>
+      <button id="next" class="btn" title="Nächste Szene">Weiter ▶︎</button>
+      <span class="pill" id="progress"></span>
+    </div>
+
+    <p><a href="../index.html">← Zurück zum Regal</a></p>
+
+    <script>
+      // Offline-Modus: feste Szenen (deterministisch)
+      const story = [
+        {
+          id: 'ep1-1',
+          text: 'Du trittst aus der Tür. Die Luft ist kühl, aber freundlich. Ein schmaler Pfad führt links zum alten Baum, rechts glitzert ein Bach.',
+          choices: [
+            { id: 'baum', label: 'Zum Baum', artifact: { title: 'Wurzelblick', content: '📝 Wurzelblick\n• Hinweis: 30 Sekunden in die Ferne schauen.\n• Mini-Ritual: Spüre deine Fußsohlen.' } },
+            { id: 'bach', label: 'Zum Bach', artifact: { title: 'Leichtfluss', content: '📝 Leichtfluss\n• Hinweis: Einen Gedanken weiterziehen lassen.\n• Mini-Ritual: 3 Atemzüge, länger aus als ein.' } }
+          ]
+        },
+        {
+          id: 'ep1-2',
+          text: 'Am Ziel bemerkst du: Nichts drängt. Hier darf es langsam sein. Ein kleiner Gegenstand liegt am Weg.',
+          choices: [
+            { id: 'stein', label: 'Nimm den Stein', artifact: { title: 'Taschenanker', content: '📝 Taschenanker\n• Hinweis: Hand an die Tasche, kurz erinnern: „Ich bin hier.“\n• Mini-Ritual: 1 tiefer Atemzug.' } },
+            { id: 'lassen', label: 'Lass ihn liegen', artifact: { title: 'Leerer Platz', content: '📝 Leerer Platz\n• Hinweis: Heute muss nichts dazu.\n• Mini-Ritual: 10 Sekunden bewusst nichts tun.' } }
+          ]
+        }
+      ];
+
+      const state = { i: 0, picks: [] };
+
+      function $(s){ return document.querySelector(s); }
+      function saveToShelf(item) {
+        const arr = JSON.parse(localStorage.getItem('vlfl_shelf')||'[]');
+        const now = new Date();
+        const iso = now.toISOString();
+        arr.unshift({
+          id: 'story-' + (item.id || Math.random().toString(36).slice(2)),
+          kind: 'story', source: 'Story',
+          title: item.title || 'Artefakt',
+          content: item.content,
+          dateTime: iso, date: iso.slice(0,10)
+        });
+        localStorage.setItem('vlfl_shelf', JSON.stringify(arr.slice(0,200)));
+      }
+
+      function render() {
+        const sc = story[state.i];
+        const box = $('#scene');
+        box.innerHTML = '';
+        const p = document.createElement('p'); p.textContent = sc.text; box.appendChild(p);
+        const row = document.createElement('div'); row.className = 'row';
+        sc.choices.forEach(ch => {
+          const b = document.createElement('button');
+          b.className = 'btn';
+          b.textContent = ch.label;
+          b.onclick = () => {
+            state.picks.push({ scene: sc.id, choice: ch.id });
+            saveToShelf(ch.artifact);
+            state.i = Math.min(state.i + 1, story.length - 1);
+            render();
+          };
+          row.appendChild(b);
+        });
+        box.appendChild(row);
+        $('#progress').textContent = `Szene ${state.i+1} / ${story.length}`;
+      }
+
+      $('#prev').onclick = () => { state.i = Math.max(0, state.i - 1); render(); };
+      $('#next').onclick = () => { state.i = Math.min(story.length - 1, state.i + 1); render(); };
+
+      render();
+    </script>
+  </body>
+</html>

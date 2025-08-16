@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Minispiele · Atem, Echo, Ordnung</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+      .card { border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:12px }
+      .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center }
+      .btn { padding:10px 14px; border:1px solid #d1d5db; border-radius:10px; background:#fff; cursor:pointer }
+      .muted { color:#6b7280 }
+      .pill { background:#f3f4f6; border-radius:999px; padding:6px 10px; font-size:.9rem }
+      pre { background:#f6f8fa; padding:8px; border-radius:10px; white-space:pre-wrap }
+      .timer { font-variant-numeric: tabular-nums; font-size: 1.2rem }
+    </style>
+  </head>
+  <body>
+    <h1>🎲 Minispiele</h1>
+    <p class="muted">Kleine, bewusste Impulse. Jedes Spiel kann ein Artefakt ins Regal legen.</p>
+
+    <div class="card">
+      <h3>🫁 Atem‑Takt (60–90 s)</h3>
+      <p class="muted">Atme 4s ein – 4s aus. Oder wähle deinen Rhythmus. Mehr Reset als Spiel.</p>
+      <div class="row">
+        <button id="breathStart" class="btn">Start 60s</button>
+        <button id="breathStart90" class="btn">Start 90s</button>
+        <span class="pill timer" id="breathTimer">00:00</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🃏 Echo‑Karten</h3>
+      <p class="muted">Zieh eine Karte → Mini‑Ritual.</p>
+      <div class="row">
+        <button id="echoDraw" class="btn">Karte ziehen</button>
+        <span class="pill" id="echoLast"></span>
+      </div>
+      <pre id="echoOut">Noch keine Karte.</pre>
+    </div>
+
+    <div class="card">
+      <h3>🪨 3‑Stein‑Pfad</h3>
+      <p class="muted">Wähle 3 Mini‑Schritte (≤5 Min). Beim nächsten Besuch bekommst du ein Artefakt.</p>
+      <div class="row">
+        <input id="s1" class="pill" placeholder="Schritt 1" />
+        <input id="s2" class="pill" placeholder="Schritt 2" />
+        <input id="s3" class="pill" placeholder="Schritt 3" />
+        <button id="stepsSave" class="btn">Speichern</button>
+        <button id="stepsComplete" class="btn">Abschließen</button>
+      </div>
+      <pre id="stepsOut">Noch nichts geplant.</pre>
+    </div>
+
+    <div class="card">
+      <h3>🧹 Ordnung‑Sprint (2 Min)</h3>
+      <p class="muted">Ein Fach, 10 Dinge. Kurz & freundlich.</p>
+      <div class="row">
+        <button id="orderStart" class="btn">2:00 Timer</button>
+        <span class="pill timer" id="orderTimer">02:00</span>
+      </div>
+    </div>
+
+    <p><a href="../index.html">← Zurück zum Regal</a></p>
+
+    <script>
+      function saveShelf(item) {
+        const arr = JSON.parse(localStorage.getItem('vlfl_shelf')||'[]');
+        const iso = new Date().toISOString();
+        arr.unshift({ id: item.id || ('mini-' + Math.random().toString(36).slice(2)), kind: item.kind||'mini', source: item.source||'Minispiel', title: item.title||'Artefakt', content: item.content, insight: item.insight||'', dateTime: iso, date: iso.slice(0,10) });
+        localStorage.setItem('vlfl_shelf', JSON.stringify(arr.slice(0,200)));
+      }
+
+      // Atem-Takt
+      function startTimer(el, secs, onDone){
+        let t = secs; el.textContent = fmt(t);
+        const id = setInterval(()=>{ t--; el.textContent = fmt(t); if(t<=0){ clearInterval(id); onDone&&onDone(); } }, 1000);
+      }
+      function fmt(s){ const m = String(Math.floor(s/60)).padStart(2,'0'); const sec = String(s%60).padStart(2,'0'); return `${m}:${sec}` }
+      document.getElementById('breathStart').onclick = ()=> startTimer(document.getElementById('breathTimer'), 60, ()=> saveShelf({ title:'Atem‑Takt 60', content:'📝 Atem‑Takt\n• Hinweis: 4 in – 4 aus.\n• Mini‑Ritual: 60 Sekunden im Rhythmus.' }));
+      document.getElementById('breathStart90').onclick = ()=> startTimer(document.getElementById('breathTimer'), 90, ()=> saveShelf({ title:'Atem‑Takt 90', content:'📝 Atem‑Takt\n• Hinweis: 4 in – 4 aus.\n• Mini‑Ritual: 90 Sekunden im Rhythmus.' }));
+
+      // Echo‑Karten
+      const deck = [
+        { key:'Klarheit', prompt:'Ein Satz, der es einfacher macht.', ritual:'Fenster auf, 3 Atemzüge.' },
+        { key:'Mut', prompt:'Ein kleiner Schritt heute.', ritual:'1 Nachricht an jemanden, der gut tut.' },
+        { key:'Leichtigkeit', prompt:'Worüber kannst du heute lächeln?', ritual:'5 Minuten Musik & bewegen.' },
+        { key:'Ordnung', prompt:'Was bekommt heute einen Platz?', ritual:'2 Minuten ein Mini‑Bereich.' },
+        { key:'Dankbarkeit', prompt:'Wofür bist du dankbar?', ritual:'Notiere 3 Dinge handschriftlich.' }
+      ];
+      function draw(){ return deck[Math.floor(Math.random()*deck.length)]; }
+      document.getElementById('echoDraw').onclick = ()=>{
+        const c = draw();
+        const text = `📝 ${c.key}\n• Hinweis: ${c.prompt}\n• Mini‑Ritual: ${c.ritual}`;
+        document.getElementById('echoOut').textContent = text;
+        document.getElementById('echoLast').textContent = c.key;
+        saveShelf({ title: c.key, content: text, kind:'echo', source:'Echo‑Karten' });
+      };
+
+      // 3‑Stein‑Pfad
+      const stepsKey = 'vlfl_steps';
+      function loadSteps(){ try{return JSON.parse(localStorage.getItem(stepsKey)||'{}')}catch{return{}} }
+      function saveSteps(obj){ localStorage.setItem(stepsKey, JSON.stringify(obj)); }
+      function showSteps(){ const s=loadSteps(); const arr=[s.s1,s.s2,s.s3].filter(Boolean); document.getElementById('stepsOut').textContent = arr.length?('Heute: '+arr.join(' · ')):'Noch nichts geplant.' }
+      showSteps();
+      document.getElementById('stepsSave').onclick = ()=>{ const s=loadSteps(); s.s1=document.getElementById('s1').value.trim(); s.s2=document.getElementById('s2').value.trim(); s.s3=document.getElementById('s3').value.trim(); s.date=new Date().toISOString().slice(0,10); saveSteps(s); showSteps(); };
+      document.getElementById('stepsComplete').onclick = ()=>{
+        const s = loadSteps(); const arr=[s.s1,s.s2,s.s3].filter(Boolean);
+        if(!arr.length){ document.getElementById('stepsOut').textContent = 'Nichts eingetragen.'; return; }
+        saveShelf({ title:'3‑Stein‑Pfad', content:`📝 3‑Stein‑Pfad\n• Schritte: ${arr.join(' · ')}\n• Mini‑Ritual: 1 Minute lächeln.` , kind:'steps', source:'3‑Stein‑Pfad' });
+        localStorage.removeItem(stepsKey); showSteps();
+      };
+
+      // Ordnung‑Sprint
+      document.getElementById('orderStart').onclick = ()=> startTimer(document.getElementById('orderTimer'), 120, ()=> saveShelf({ title:'Ordnung‑Sprint', content:'📝 Ordnung‑Sprint\n• Hinweis: Ein Fach, 10 Dinge.\n• Mini‑Ritual: 2:00 Timer geschafft.' , kind:'order', source:'Ordnung‑Sprint' }));
+    </script>
+  </body>
+</html>
