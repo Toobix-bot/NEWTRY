@@ -1,68 +1,42 @@
 <!doctype html>
 <html lang="de">
   <head>
-    <meta charset="utf-8">
-    <title>Vom Leben fürs Leben</title>
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vom Leben fürs Leben</title>
     <style>
-      body {
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif;
-        max-width: 800px;
-        margin: 40px auto;
-        padding: 0 16px;
-        text-align: center;
-        line-height: 1.6;
-      }
-      h1 { margin-bottom: 0.5em; }
-      .doors {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 40px;
-        flex-wrap: wrap;
-      }
-      .door {
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        padding: 20px;
-        width: 180px;
-        box-shadow: 0 2px 6px rgba(0,0,0,.1);
-        transition: transform .2s;
-        background: #fff;
-      }
-      .door:hover {
-        transform: translateY(-3px);
-        cursor: pointer;
-      }
-      a { text-decoration: none; color: inherit; }
-      footer { margin-top: 48px; font-size: 0.9rem; color: #666; }
+      :root { --card:#ffffff; --muted:#6b7280; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
+      h1 { text-align: center; margin-bottom: .2em }
+      p.leit { text-align:center; color: var(--muted); margin-top: .2em }
+      .doors { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin-top: 36px; }
+      .door { width: 220px; border: 1px solid #e5e7eb; border-radius: 14px; background: var(--card); box-shadow: 0 2px 6px rgba(0,0,0,.06); padding: 18px; transition: transform .15s ease; text-align:center; }
+      .door:hover { transform: translateY(-2px); }
+      a { color: inherit; text-decoration: none; }
+      footer { margin-top: 48px; text-align:center; color: var(--muted); font-size: .95rem }
     </style>
   </head>
   <body>
     <h1>Vom Leben fürs Leben</h1>
-    <p>
-      Dieses Projekt verbindet Himmel und Erde:
-      ein wachsender Raum für Spiel, Klarheit und Verbindung.
-      Mutig, echt und getragen – mit Freude, Nutzen und Sinn.
+    <p class="leit">
+      Ein wachsender Raum für Spiel, Klarheit und Verbindung. Mutig, echt und getragen – mit Freude, Nutzen und Sinn.
     </p>
 
     <div class="doors">
       <a class="door" href="spiel/index.html">
         <h2>🎮 Spiel</h2>
-        <p>Lebensspiel, Quests, XP.</p>
+        <p>Lebensspiel, Quests, Artefakte.</p>
       </a>
       <a class="door" href="begleiter/index.html">
         <h2>🤖 Begleiter</h2>
-        <p>Tools & Reflexionen für den Alltag.</p>
+        <p>Plan &amp; Reflexion (sanft, privat).</p>
       </a>
       <a class="door" href="wissen/index.html">
         <h2>📚 Wissen</h2>
-        <p>Sammlung, Blog & Ausdruck.</p>
+        <p>Sammlung, Blog, Deep Research.</p>
       </a>
     </div>
 
-    <footer>
-      v0.1 • Prototyp • Architektur siehe ARCHITEKTUR.md
-    </footer>
+    <footer>v0.2 • Prototyp • Architektur siehe ARCHITEKTUR.md</footer>
   </body>
 </html>
