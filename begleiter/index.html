@@ -3,51 +3,54 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Begleiter · Plan & Reflexion</title>
+    <title>Begleiter · Plan &amp; Reflexion</title>
     <style>
-      :root { --muted:#6b7280; }
+      :root { --muted:#6b7280; --border:#e5e7eb; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
       h1 { margin-bottom: .2em }
       .muted { color: var(--muted); }
       .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-      textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid #e5e7eb; border-radius: 10px; min-height: 84px; font-family: inherit; }
+      textarea, input[type="text"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px; min-height: 84px; font-family: inherit; }
       .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
       button { padding: 10px 14px; border:1px solid #d1d5db; border-radius: 10px; background:#fff; cursor:pointer; }
+      button:disabled { opacity:.6; cursor:not-allowed; }
       .pill { background:#f3f4f6; border-radius:999px; padding:6px 10px; font-size:.9rem; }
       .notice { background:#f9fafb; border:1px dashed #d1d5db; border-radius:12px; padding:12px; }
-      .section { border:1px solid #e5e7eb; border-radius:12px; padding:14px; }
+      .section { border:1px solid var(--border); border-radius:12px; padding:14px; }
       .small { font-size:.92rem }
-      .ok { color:#065f46 }
-      .warn { color:#92400e }
-      .err { color:#991b1b }
       pre { background:#f6f8fa; padding:10px; border-radius:10px; overflow:auto; }
+      @media (min-width: 720px) {
+        .grid { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
   <body>
     <h1>🤖 Begleiter</h1>
-    <p class="muted">Sanfter Tagesbogen: <strong>Plan</strong> am Morgen, <strong>Reflexion</strong> am Abend. Alles bleibt <em>nur auf diesem Gerät</em>. Pausen sind okay.</p>
+    <p class="muted">Sanfter Tagesbogen: <strong>Plan</strong> am Morgen, <strong>Reflexion</strong> am Abend. Alles bleibt <em>nur auf diesem Gerät</em>.</p>
 
     <div class="grid">
+      <!-- Journal-Eingaben: werden pro Datum in localStorage unter "vlfl_journal" gespeichert -->
       <div class="section">
-        <div class="row">
-          <span class="pill" id="today"></span>
+        <div class="row" aria-live="polite">
+          <span class="pill" id="today" title="Heutiges Datum"></span>
           <span class="muted small">Empfehlung: 5–10 Minuten reichen. Kein Druck.</span>
         </div>
-        <label><strong>Morgens – Plan (grob)</strong></label>
+        <label for="plan"><strong>Morgens – Plan (grob)</strong></label>
         <textarea id="plan" placeholder="Was ist heute wesentlich? (3 Punkte genügen)"></textarea>
 
-        <label><strong>Abends – Reflexion (frei)</strong></label>
+        <label for="reflect"><strong>Abends – Reflexion (frei)</strong></label>
         <textarea id="reflect" placeholder="Was war echt? Was hat getragen? Eine Sache, die ich mitnehme."></textarea>
 
         <div class="row">
-          <button id="save">Speichern</button>
-          <button id="export">Export (.json)</button>
+          <button id="save" aria-label="Eintrag speichern">Speichern</button>
+          <button id="export" aria-label="Daten exportieren">Export (.json)</button>
           <input type="file" id="import" accept="application/json" style="display:none" />
-          <button id="importBtn">Import</button>
-          <span class="muted small" id="status"></span>
+          <button id="importBtn" aria-controls="import">Import</button>
+          <span class="muted small" id="status" role="status" aria-live="polite"></span>
         </div>
       </div>
 
+      <!-- Artefakt: klein & freundlich; ohne KI (Keyword-Set) oder optional mit lokaler KI (Ollama) -->
       <div class="section">
         <h3>🎁 Artefakt (optional, sanft)</h3>
         <p class="small">Aus deiner Reflexion entsteht hier eine kleine Geste (Wort, Bild-Idee, Mini-Ritual). Ohne Zwang. Mit oder ohne KI.</p>
@@ -64,7 +67,7 @@
         <ul>
           <li>Keine Pflicht, keine Streaks. Pausen sind okay.</li>
           <li>Alles bleibt lokal (Browser-Speicher). Du entscheidest, was du teilst.</li>
-          <li>Wenn du die Seite öffentlich nutzt (GitHub Pages), sind KI-Funktionen standardmäßig aus. Lokal kannst du sie aktivieren.</li>
+          <li>Auf öffentlichen Seiten (HTTPS, z. B. GitHub Pages) ist KI standardmäßig aus. Lokal kannst du sie aktivieren.</li>
         </ul>
       </div>
     </div>
@@ -72,7 +75,7 @@
     <p><a href="../index.html">← Zurück zur Startseite</a></p>
 
     <script>
-      // --- Helpers ---
+      // --- Helpers & Storage -----------------------------------------------
       const $ = sel => document.querySelector(sel);
       const todayStr = new Date().toISOString().slice(0,10);
       $("#today").textContent = todayStr;
@@ -85,13 +88,13 @@
         localStorage.setItem('vlfl_journal', JSON.stringify(obj));
       }
 
-      // Load today's entry
+      // Lade aktuellen Eintrag
       const store = loadStore();
       const entry = store[todayStr] || {};
       $("#plan").value = entry.plan || "";
       $("#reflect").value = entry.reflect || "";
 
-      // Save
+      // Speichern
       $("#save").onclick = () => {
         const s = loadStore();
         s[todayStr] = {
@@ -124,15 +127,17 @@
         try {
           const text = await file.text();
           const obj = JSON.parse(text);
-          if (typeof obj !== 'object') throw new Error("Kein Objekt.");
+          if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error("Kein Objekt.");
           saveStore(obj);
           $("#status").textContent = "Import OK. Seite neu laden, um Daten zu sehen.";
         } catch (err) {
           $("#status").textContent = "Import fehlgeschlagen.";
+          console.error(err);
         }
       });
 
-      // --- Artifact generation without AI ---
+      // --- Artefakt ohne KI -------------------------------------------------
+      // Einfaches Kartenset + Stichwortsuche; bewusst simpel & lokal
       const cards = [
         {key:"Klarheit", prompt:"Ein Satz, der es einfacher macht.", ritual:"Fenster auf, 3 tiefe Atemzüge."},
         {key:"Mut", prompt:"Ein kleiner Schritt, der dich heute nähert.", ritual:"1 Nachricht an eine Person, die dir gut tut."},
@@ -141,14 +146,14 @@
         {key:"Dankbarkeit", prompt:"Wofür bist du heute dankbar?", ritual:"Notiere 3 Dinge handschriftlich."}
       ];
       function pickArtifact(text) {
-        // primitive Auswahl: suche Stichworte, sonst random
+        // Primitive Auswahl: suche Stichworte, sonst zufällig
         const t = (text||"").toLowerCase();
         const map = { klar:0, fokus:0, mut:1, angst:1, leicht:2, humor:2, ordn:3, chaos:3, dank:4 };
         let idx = null;
         for (const k in map) { if (t.includes(k)) { idx = map[k]; break; } }
         if (idx === null) idx = Math.floor(Math.random()*cards.length);
         const c = cards[idx];
-        return `🗝️ ${c.key}\n• Hinweis: ${c.prompt}\n• Mini-Ritual: ${c.ritual}`;
+        return `� ${c.key}\n• Hinweis: ${c.prompt}\n• Mini-Ritual: ${c.ritual}`;
       }
 
       $("#makeArtifact").onclick = () => {
@@ -160,15 +165,13 @@
         saveStore(s);
       };
 
-      // --- Optional: local AI with Ollama ---
+      // --- Optional: lokale KI via Ollama ----------------------------------
+      // Aktiv nur, wenn Seite NICHT via HTTPS läuft (gemäß Mixed-Content-Regeln)
       const aiInfo = $("#aiState");
       const aiBtn = $("#aiArtifact");
 
       function isHttps() { return location.protocol === "https:"; }
-      function localAIEnabledByContext() {
-        // Auf GitHub Pages (HTTPS) verbieten wir aktive Versuche, um Mixed-Content-Fehler zu vermeiden.
-        return !isHttps();
-      }
+      function localAIEnabledByContext() { return !isHttps(); }
 
       if (!localAIEnabledByContext()) {
         aiInfo.textContent = "KI lokal ist auf HTTPS-Seiten deaktiviert (Sicherheitsgründe). Starte lokal über einen Dev-Server.";
@@ -216,5 +219,12 @@
         }
       };
     </script>
+
+    <!--
+      Hinweise (CORS / Mixed-Content):
+      - Auf HTTPS-Seiten blocken Browser HTTP-Requests zu http://localhost:11434 (Mixed Content). Deshalb ist der KI-Button auf HTTPS deaktiviert.
+      - Lokal testen: Seite über einen lokalen Server öffnen (http://...), dann funktioniert die Anfrage zu Ollama (sofern auf 11434 gestartet).
+      - Export/Import nutzt lokale Dateien, die niemals das Gerät verlassen.
+    -->
   </body>
 </html>

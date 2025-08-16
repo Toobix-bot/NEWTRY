@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Spiel</title>
+    <title>Spiel · Artefakte</title>
     <style>
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
       .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
@@ -12,32 +12,40 @@
       .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
       .pill { background:#f3f4f6; border-radius: 999px; padding: 6px 10px; font-size: .9rem }
       a { color: #111827; }
+      pre { background:#f6f8fa; padding:8px; border-radius:10px; white-space:pre-wrap; }
     </style>
   </head>
   <body>
     <h1>🎮 Spiel</h1>
-    <p class="muted">Hier erscheinen kleine Artefakte, die aus deinen Reflexionen entstehen. Nichts ist Pflicht. Pausen sind okay.</p>
+    <p class="muted">Artefakte aus deinem Journal (letzte 10 Tage). Alles bleibt lokal im Browser.</p>
 
     <div class="grid" id="artifacts"></div>
 
     <p><a href="../index.html">← Zurück zur Startseite</a></p>
 
     <script>
-      // Zeige die letzten Artefakte (falls vorhanden) aus dem Begleiter
-      const data = JSON.parse(localStorage.getItem('vlfl_journal') || '{}');
+      // Liest localStorage "vlfl_journal" und zeigt Artefakte an. Kein Tracking.
+      const raw = localStorage.getItem('vlfl_journal') || '{}';
+      let data;
+      try { data = JSON.parse(raw) || {}; } catch { data = {}; }
       const arr = Object.entries(data).sort((a,b)=> b[0].localeCompare(a[0]));
-      const artifacts = [];
-      for (const [date, entry] of arr.slice(0, 10)) {
-        if (entry.artifact) artifacts.push({ date, artifact: entry.artifact, insight: entry.insight || '' });
-      }
+      const last10 = arr.slice(0, 10).map(([date, entry]) => ({
+        date,
+        artifact: entry?.artifact || '',
+        insight: entry?.insight || ''
+      })).filter(x => x.artifact);
+
       const box = document.getElementById('artifacts');
-      if (!artifacts.length) {
-        box.innerHTML = '<div class="card muted">Noch keine Artefakte. Lege im Begleiter eine Reflexion an, dann entsteht hier etwas.</div>';
+      if (!last10.length) {
+        box.innerHTML = `
+          <div class="card muted">
+            Noch keine Artefakte. Erzeuge eins im <a href="../begleiter/index.html">Begleiter</a> (Plan & Reflexion), dann erscheint es hier.
+          </div>`;
       } else {
-        box.innerHTML = artifacts.map(a => `
+        box.innerHTML = last10.map(a => `
           <div class="card">
-            <div class="row"><span class="pill">${a.date}</span><strong>Artefakt</strong></div>
-            <p>${a.artifact}</p>
+            <div class="row"><span class="pill" title="Datum">${a.date}</span><strong>Artefakt</strong></div>
+            <pre>${a.artifact}</pre>
             ${a.insight ? `<p class="muted">Notiz: ${a.insight}</p>` : ''}
           </div>
         `).join('');
