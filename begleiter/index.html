@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Begleiter · Plan &amp; Reflexion</title>
+  <title>Begleiter · Plan &amp; Reflexion</title>
     <style>
       :root { --muted:#6b7280; --border:#e5e7eb; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
@@ -29,10 +29,14 @@
     <p class="muted">Sanfter Tagesbogen: <strong>Plan</strong> am Morgen, <strong>Reflexion</strong> am Abend. Alles bleibt <em>nur auf diesem Gerät</em>.</p>
 
     <div class="grid">
+      <!-- v0.3 – Einsicht + Tageswahl -->
       <!-- Journal-Eingaben: werden pro Datum in localStorage unter "vlfl_journal" gespeichert -->
       <div class="section">
         <div class="row" aria-live="polite">
-          <span class="pill" id="today" title="Heutiges Datum"></span>
+          <button id="prevDay" title="Vorheriger Tag">◀︎</button>
+          <button id="goToday" title="Heute">Heute</button>
+          <button id="nextDay" title="Nächster Tag">▶︎</button>
+          <span class="pill" id="today" title="Gewähltes Datum"></span>
           <span class="muted small">Empfehlung: 5–10 Minuten reichen. Kein Druck.</span>
         </div>
         <label for="plan"><strong>Morgens – Plan (grob)</strong></label>
@@ -40,6 +44,10 @@
 
         <label for="reflect"><strong>Abends – Reflexion (frei)</strong></label>
         <textarea id="reflect" placeholder="Was war echt? Was hat getragen? Eine Sache, die ich mitnehme."></textarea>
+
+        <!-- Neues Feld v0.3: Einsicht (1 Satz) -->
+        <label for="insight"><strong>Einsicht (1 Satz)</strong></label>
+        <input id="insight" type="text" placeholder="Ein Satz, den ich mitnehme…" />
 
         <div class="row">
           <button id="save" aria-label="Eintrag speichern">Speichern</button>
@@ -76,9 +84,11 @@
 
     <script>
       // --- Helpers & Storage -----------------------------------------------
-      const $ = sel => document.querySelector(sel);
-      const todayStr = new Date().toISOString().slice(0,10);
-      $("#today").textContent = todayStr;
+  const $ = sel => document.querySelector(sel);
+  const todayStr = new Date().toISOString().slice(0,10);
+  // currentDateStr = aktuell gewählter Tag (ISO). Startet bei heute.
+  let currentDateStr = todayStr;
+  $("#today").textContent = currentDateStr;
 
       function loadStore() {
         try { return JSON.parse(localStorage.getItem('vlfl_journal') || '{}'); }
@@ -88,20 +98,34 @@
         localStorage.setItem('vlfl_journal', JSON.stringify(obj));
       }
 
-      // Lade aktuellen Eintrag
-      const store = loadStore();
-      const entry = store[todayStr] || {};
-      $("#plan").value = entry.plan || "";
-      $("#reflect").value = entry.reflect || "";
+      // Eintrag laden/schreiben für gewählten Tag
+      function loadEntry(dateStr) {
+        const store = loadStore();
+        const entry = store[dateStr] || {};
+        $("#plan").value = entry.plan || "";
+        $("#reflect").value = entry.reflect || "";
+        $("#insight").value = entry.insight || "";
+        // Zeige vorhandenes Artefakt (optional)
+        $("#artifactBox").textContent = entry.artifact || "Noch nichts erzeugt.";
+      }
+
+      function setCurrentDate(dateStr) {
+        currentDateStr = dateStr;
+        $("#today").textContent = currentDateStr;
+        loadEntry(currentDateStr);
+      }
+
+      // Initial laden
+      loadEntry(currentDateStr);
 
       // Speichern
       $("#save").onclick = () => {
         const s = loadStore();
-        s[todayStr] = {
+        s[currentDateStr] = {
           plan: $("#plan").value.trim(),
           reflect: $("#reflect").value.trim(),
-          insight: (s[todayStr]?.insight || ""),
-          artifact: (s[todayStr]?.artifact || "")
+          insight: $("#insight").value.trim(),
+          artifact: (s[currentDateStr]?.artifact || "")
         };
         saveStore(s);
         $("#status").textContent = "Gespeichert.";
@@ -161,7 +185,7 @@
         const txt = $("#reflect").value || $("#plan").value || "";
         const artifact = pickArtifact(txt);
         $("#artifactBox").textContent = artifact;
-        s[todayStr] = { ...(s[todayStr]||{}), artifact, insight: (s[todayStr]?.insight || "") };
+        s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact, insight: $("#insight").value.trim() };
         saveStore(s);
       };
 
@@ -208,7 +232,7 @@
           const text = await callOllamaChat(ask);
           $("#artifactBox").textContent = text;
           const s = loadStore();
-          s[todayStr] = { ...(s[todayStr]||{}), artifact: text, insight: (s[todayStr]?.insight || "") };
+          s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact: text, insight: $("#insight").value.trim() };
           saveStore(s);
           aiInfo.textContent = "OK.";
         } catch (err) {
@@ -218,12 +242,22 @@
           aiBtn.disabled = false;
         }
       };
+
+      // --- Tageswahl (◀︎ Heute ▶︎) -----------------------------------------
+      function shiftDate(iso, days) {
+        const d = new Date(iso);
+        d.setDate(d.getDate() + days);
+        return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+      }
+      $("#prevDay").onclick = () => setCurrentDate(shiftDate(currentDateStr, -1));
+      $("#nextDay").onclick = () => setCurrentDate(shiftDate(currentDateStr, +1));
+      $("#goToday").onclick = () => setCurrentDate(todayStr);
     </script>
 
     <!--
       Hinweise (CORS / Mixed-Content):
       - Auf HTTPS-Seiten blocken Browser HTTP-Requests zu http://localhost:11434 (Mixed Content). Deshalb ist der KI-Button auf HTTPS deaktiviert.
-      - Lokal testen: Seite über einen lokalen Server öffnen (http://...), dann funktioniert die Anfrage zu Ollama (sofern auf 11434 gestartet).
+  - Lokal testen: Seite über einen lokalen Server öffnen (http://...), dann funktioniert die Anfrage zu Ollama (sofern auf 11434 gestartet).
       - Export/Import nutzt lokale Dateien, die niemals das Gerät verlassen.
     -->
   </body>
