@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Spiel · Artefakte</title>
+    <title>Spiel · Artefakte</title>
     <style>
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
       .grid { display:grid; grid-template-columns: 1fr; gap: 12px; }
@@ -17,8 +17,8 @@
   </head>
   <body>
     <h1>🎮 Spiel</h1>
-  <!-- v0.3 – Einsicht + Tageswahl (Anzeige-seitig nur Einsicht-Snippet) -->
-  <p class="muted">Artefakte aus deinem Journal (letzte 10 Tage). Alles bleibt lokal im Browser.</p>
+    <!-- v0.3 – Einsicht + Tageswahl (Anzeige-seitig nur Einsicht-Snippet); v0.3.1 – sicheres Rendering -->
+    <p class="muted">Artefakte aus deinem Journal (letzte 10 Tage). Alles bleibt lokal im Browser.</p>
 
     <div class="grid" id="artifacts"></div>
 
@@ -30,26 +30,56 @@
       let data;
       try { data = JSON.parse(raw) || {}; } catch { data = {}; }
       const arr = Object.entries(data).sort((a,b)=> b[0].localeCompare(a[0]));
-  const last10 = arr.slice(0, 10).map(([date, entry]) => ({
+      const last10 = arr.slice(0, 10).map(([date, entry]) => ({
         date,
         artifact: entry?.artifact || '',
         insight: entry?.insight || ''
       })).filter(x => x.artifact);
 
       const box = document.getElementById('artifacts');
+
+      function renderEmpty() {
+        const card = document.createElement('div');
+        card.className = 'card muted';
+        const link = document.createElement('a');
+        link.href = '../begleiter/index.html';
+        link.textContent = 'Begleiter';
+        card.appendChild(document.createTextNode('Noch keine Artefakte. Erzeuge eins im '));
+        card.appendChild(link);
+        card.appendChild(document.createTextNode(' (Plan & Reflexion), dann erscheint es hier.'));
+        box.appendChild(card);
+      }
+
+      function renderItem(item) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const row = document.createElement('div');
+        row.className = 'row';
+        const badge = document.createElement('span');
+        badge.className = 'pill';
+        badge.title = 'Datum';
+        badge.textContent = item.date;
+        const title = document.createElement('strong');
+        title.textContent = 'Artefakt';
+        row.appendChild(badge);
+        row.appendChild(title);
+        const pre = document.createElement('pre');
+        pre.textContent = item.artifact;
+        card.appendChild(row);
+        card.appendChild(pre);
+        if (item.insight) {
+          const p = document.createElement('p');
+          p.className = 'muted';
+          p.textContent = `Einsicht: ${item.insight}`;
+          card.appendChild(p);
+        }
+        box.appendChild(card);
+      }
+
       if (!last10.length) {
-        box.innerHTML = `
-          <div class="card muted">
-            Noch keine Artefakte. Erzeuge eins im <a href="../begleiter/index.html">Begleiter</a> (Plan & Reflexion), dann erscheint es hier.
-          </div>`;
+        renderEmpty();
       } else {
-    box.innerHTML = last10.map(a => `
-          <div class="card">
-            <div class="row"><span class="pill" title="Datum">${a.date}</span><strong>Artefakt</strong></div>
-            <pre>${a.artifact}</pre>
-      ${a.insight ? `<p class="muted">Einsicht: ${a.insight}</p>` : ''}
-          </div>
-        `).join('');
+        last10.forEach(renderItem);
       }
     </script>
   </body>

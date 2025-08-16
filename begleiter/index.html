@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Begleiter · Plan &amp; Reflexion</title>
+    <title>Begleiter · Plan &amp; Reflexion</title>
     <style>
       :root { --muted:#6b7280; --border:#e5e7eb; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
@@ -18,7 +18,7 @@
       .notice { background:#f9fafb; border:1px dashed #d1d5db; border-radius:12px; padding:12px; }
       .section { border:1px solid var(--border); border-radius:12px; padding:14px; }
       .small { font-size:.92rem }
-      pre { background:#f6f8fa; padding:10px; border-radius:10px; overflow:auto; }
+      pre { background:#f6f8fa; padding:10px; border-radius:10px; overflow:auto; white-space:pre-wrap; }
       @media (min-width: 720px) {
         .grid { grid-template-columns: 1fr; }
       }
@@ -29,7 +29,7 @@
     <p class="muted">Sanfter Tagesbogen: <strong>Plan</strong> am Morgen, <strong>Reflexion</strong> am Abend. Alles bleibt <em>nur auf diesem Gerät</em>.</p>
 
     <div class="grid">
-      <!-- v0.3 – Einsicht + Tageswahl -->
+      <!-- v0.3 – Einsicht + Tageswahl; v0.3.1 – Auto-Save, Datepicker, Merge-Import -->
       <!-- Journal-Eingaben: werden pro Datum in localStorage unter "vlfl_journal" gespeichert -->
       <div class="section">
         <div class="row" aria-live="polite">
@@ -37,6 +37,8 @@
           <button id="goToday" title="Heute">Heute</button>
           <button id="nextDay" title="Nächster Tag">▶︎</button>
           <span class="pill" id="today" title="Gewähltes Datum"></span>
+          <!-- v0.3.1: Direktes Datum wählen -->
+          <input id="datePicker" type="date" style="margin-left:6px" aria-label="Datum wählen" />
           <span class="muted small">Empfehlung: 5–10 Minuten reichen. Kein Druck.</span>
         </div>
         <label for="plan"><strong>Morgens – Plan (grob)</strong></label>
@@ -83,12 +85,16 @@
     <p><a href="../index.html">← Zurück zur Startseite</a></p>
 
     <script>
+      // --- v0.3.1: Auto-Save, Datepicker, Merge-Import ----------------------
       // --- Helpers & Storage -----------------------------------------------
-  const $ = sel => document.querySelector(sel);
-  const todayStr = new Date().toISOString().slice(0,10);
-  // currentDateStr = aktuell gewählter Tag (ISO). Startet bei heute.
-  let currentDateStr = todayStr;
-  $("#today").textContent = currentDateStr;
+      const $ = sel => document.querySelector(sel);
+      const todayStr = new Date().toISOString().slice(0,10);
+      // currentDateStr = aktuell gewählter Tag (ISO). Startet bei heute.
+      let currentDateStr = todayStr;
+      document.getElementById('today').textContent = currentDateStr;
+      const datePicker = document.getElementById('datePicker');
+      datePicker.value = currentDateStr;
+      let isLoading = false; // verhindert Auto-Save während Laden
 
       function loadStore() {
         try { return JSON.parse(localStorage.getItem('vlfl_journal') || '{}'); }
@@ -100,40 +106,51 @@
 
       // Eintrag laden/schreiben für gewählten Tag
       function loadEntry(dateStr) {
+        isLoading = true;
         const store = loadStore();
         const entry = store[dateStr] || {};
-        $("#plan").value = entry.plan || "";
-        $("#reflect").value = entry.reflect || "";
-        $("#insight").value = entry.insight || "";
+        document.getElementById('plan').value = entry.plan || "";
+        document.getElementById('reflect').value = entry.reflect || "";
+        document.getElementById('insight').value = entry.insight || "";
         // Zeige vorhandenes Artefakt (optional)
-        $("#artifactBox").textContent = entry.artifact || "Noch nichts erzeugt.";
+        document.getElementById('artifactBox').textContent = entry.artifact || "Noch nichts erzeugt.";
+        isLoading = false;
       }
 
       function setCurrentDate(dateStr) {
         currentDateStr = dateStr;
-        $("#today").textContent = currentDateStr;
+        document.getElementById('today').textContent = currentDateStr;
+        if (datePicker.value !== currentDateStr) datePicker.value = currentDateStr;
         loadEntry(currentDateStr);
       }
 
       // Initial laden
       loadEntry(currentDateStr);
 
-      // Speichern
-      $("#save").onclick = () => {
+      // Speichern (manuell) + Statuszeit
+      function saveCurrent() {
         const s = loadStore();
         s[currentDateStr] = {
-          plan: $("#plan").value.trim(),
-          reflect: $("#reflect").value.trim(),
-          insight: $("#insight").value.trim(),
+          plan: document.getElementById('plan').value.trim(),
+          reflect: document.getElementById('reflect').value.trim(),
+          insight: document.getElementById('insight').value.trim(),
           artifact: (s[currentDateStr]?.artifact || "")
         };
         saveStore(s);
-        $("#status").textContent = "Gespeichert.";
-        setTimeout(()=> $("#status").textContent = "", 2000);
-      };
+        const t = new Date();
+        const hh = String(t.getHours()).padStart(2,'0');
+        const mm = String(t.getMinutes()).padStart(2,'0');
+        document.getElementById('status').textContent = `Gespeichert um ${hh}:${mm}`;
+      }
+      document.getElementById('save').onclick = () => { saveCurrent(); setTimeout(()=> document.getElementById('status').textContent = "", 2000); };
+
+      // Auto-Save (debounced) bei Eingabe
+      function debounce(fn, wait){ let to; return (...a)=>{ clearTimeout(to); to=setTimeout(()=>fn(...a), wait);} }
+      const debouncedAutoSave = debounce(()=>{ if(!isLoading) saveCurrent(); }, 600);
+      ['plan','reflect','insight'].forEach(id=> document.getElementById(id).addEventListener('input', debouncedAutoSave));
 
       // Export
-      $("#export").onclick = () => {
+      document.getElementById('export').onclick = () => {
         const data = localStorage.getItem('vlfl_journal') || "{}";
         const blob = new Blob([data], {type: "application/json"});
         const a = document.createElement('a');
@@ -143,19 +160,43 @@
         URL.revokeObjectURL(a.href);
       };
 
-      // Import
-      $("#importBtn").onclick = () => $("#import").click();
-      $("#import").addEventListener('change', async (e) => {
+      // Import (v0.3.1: Merge-Import + Auto-Backup)
+      document.getElementById('importBtn').onclick = () => document.getElementById('import').click();
+      function exportBackup() {
+        const existing = localStorage.getItem('vlfl_journal') || "{}";
+        const now = new Date();
+        const ts = now.toISOString().replace(/[-:]/g,'').slice(0,15).replace('T','-');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([existing], {type:'application/json'}));
+        a.download = `journal-backup-${ts}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return a.download;
+      }
+      document.getElementById('import').addEventListener('change', async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
           const text = await file.text();
           const obj = JSON.parse(text);
           if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error("Kein Objekt.");
-          saveStore(obj);
-          $("#status").textContent = "Import OK. Seite neu laden, um Daten zu sehen.";
+          const backupName = exportBackup();
+          const s = loadStore();
+          for (const [date, val] of Object.entries(obj)) {
+            if (!val || typeof val !== 'object') continue;
+            const dst = s[date] || {};
+            s[date] = {
+              plan: typeof val.plan === 'string' ? val.plan : (dst.plan || ''),
+              reflect: typeof val.reflect === 'string' ? val.reflect : (dst.reflect || ''),
+              insight: typeof val.insight === 'string' ? val.insight : (dst.insight || ''),
+              artifact: typeof val.artifact === 'string' ? val.artifact : (dst.artifact || '')
+            };
+          }
+          saveStore(s);
+          document.getElementById('status').textContent = `Import (Merge) OK. Backup: ${backupName}`;
+          loadEntry(currentDateStr);
         } catch (err) {
-          $("#status").textContent = "Import fehlgeschlagen.";
+          document.getElementById('status').textContent = "Import fehlgeschlagen.";
           console.error(err);
         }
       });
@@ -177,22 +218,22 @@
         for (const k in map) { if (t.includes(k)) { idx = map[k]; break; } }
         if (idx === null) idx = Math.floor(Math.random()*cards.length);
         const c = cards[idx];
-        return `� ${c.key}\n• Hinweis: ${c.prompt}\n• Mini-Ritual: ${c.ritual}`;
+        return `📝 ${c.key}\n• Hinweis: ${c.prompt}\n• Mini-Ritual: ${c.ritual}`;
       }
 
-      $("#makeArtifact").onclick = () => {
+      document.getElementById('makeArtifact').onclick = () => {
         const s = loadStore();
-        const txt = $("#reflect").value || $("#plan").value || "";
+        const txt = document.getElementById('reflect').value || document.getElementById('plan').value || "";
         const artifact = pickArtifact(txt);
-        $("#artifactBox").textContent = artifact;
-        s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact, insight: $("#insight").value.trim() };
+        document.getElementById('artifactBox').textContent = artifact;
+        s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact, insight: document.getElementById('insight').value.trim() };
         saveStore(s);
       };
 
       // --- Optional: lokale KI via Ollama ----------------------------------
       // Aktiv nur, wenn Seite NICHT via HTTPS läuft (gemäß Mixed-Content-Regeln)
-      const aiInfo = $("#aiState");
-      const aiBtn = $("#aiArtifact");
+      const aiInfo = document.getElementById('aiState');
+      const aiBtn = document.getElementById('aiArtifact');
 
       function isHttps() { return location.protocol === "https:"; }
       function localAIEnabledByContext() { return !isHttps(); }
@@ -226,13 +267,13 @@
         aiBtn.disabled = true;
         aiInfo.textContent = "Verbinde mit Ollama ...";
         try {
-          const base = $("#reflect").value || $("#plan").value || "";
+          const base = document.getElementById('reflect').value || document.getElementById('plan').value || "";
           const prompt = base.trim() ? base.trim() : "Gib mir eine liebevolle, kurze Tages-Geste als Artefakt.";
           const ask = "Erzeuge eine kleine, freundliche Geste (Artefakt) basierend auf meiner kurzen Notiz. maximal 3 Zeilen. Form: Titel, Hinweis, Mini-Ritual. Notiz: " + prompt;
           const text = await callOllamaChat(ask);
-          $("#artifactBox").textContent = text;
+          document.getElementById('artifactBox').textContent = text;
           const s = loadStore();
-          s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact: text, insight: $("#insight").value.trim() };
+          s[currentDateStr] = { ...(s[currentDateStr]||{}), artifact: text, insight: document.getElementById('insight').value.trim() };
           saveStore(s);
           aiInfo.textContent = "OK.";
         } catch (err) {
@@ -249,15 +290,19 @@
         d.setDate(d.getDate() + days);
         return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
       }
-      $("#prevDay").onclick = () => setCurrentDate(shiftDate(currentDateStr, -1));
-      $("#nextDay").onclick = () => setCurrentDate(shiftDate(currentDateStr, +1));
-      $("#goToday").onclick = () => setCurrentDate(todayStr);
+      document.getElementById('prevDay').onclick = () => setCurrentDate(shiftDate(currentDateStr, -1));
+      document.getElementById('nextDay').onclick = () => setCurrentDate(shiftDate(currentDateStr, +1));
+      document.getElementById('goToday').onclick = () => setCurrentDate(todayStr);
+      datePicker.addEventListener('change', (e)=>{
+        if (!e.target.value) return;
+        setCurrentDate(e.target.value);
+      });
     </script>
 
     <!--
       Hinweise (CORS / Mixed-Content):
       - Auf HTTPS-Seiten blocken Browser HTTP-Requests zu http://localhost:11434 (Mixed Content). Deshalb ist der KI-Button auf HTTPS deaktiviert.
-  - Lokal testen: Seite über einen lokalen Server öffnen (http://...), dann funktioniert die Anfrage zu Ollama (sofern auf 11434 gestartet).
+      - Lokal testen: Seite über einen lokalen Server öffnen (http://...), dann funktioniert die Anfrage zu Ollama (sofern auf 11434 gestartet).
       - Export/Import nutzt lokale Dateien, die niemals das Gerät verlassen.
     -->
   </body>
