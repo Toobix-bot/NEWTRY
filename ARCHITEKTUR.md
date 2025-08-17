@@ -9,14 +9,15 @@
 ## 2. Hauptsäulen
 
 ### 🎮 Spiel
-- Persönliches Lebensspiel mit Quests, XP, Level-Ups.  
-- Spielerische Exploration, Kreativität, Experimente.  
-- Prinzip: **kein Verlieren** → alles wird in Erfahrung & Wachstum verwandelt.
+- Regal (Shelf) als zentrale, lokale Artefakt-Sammlung (`localStorage: vlfl_shelf`).  
+- Modularer Spiele‑Hub (`/games/`): eigenständige Demos (Mining, Karten, später Garden/Tower/…).  
+- Story „Der Zwischenraum“ (offline JSON; optional lokale KI‑Varianten).  
+- Prinzip: **kein Verlieren** → kleine Gesten, Einsichten, Mini‑Rituale statt Grind.
 
 ### 🤖 Begleiter
-- Alltags-Tools für Ausbildung, Therapie, Struktur.  
-- Journaling, Mini-Reflexionen, Tracker.  
-- Funktion: digitaler Assistent und Spiegel im Alltag.
+- Journal pro Tag (`vlfl_journal`) mit Feldern: plan, reflect, insight, artifact.  
+- Auto‑Save, Import/Export (Merge + Auto‑Backup).  
+- Optional: lokale KI via Ollama (HTTPS‑Gating, Mixed‑Content) mit Konnektivitäts‑Check.
 
 ### 📚 Wissen & Ausdruck
 - Sammlung von Deep Researches, Essays und Recherchen.  
@@ -47,12 +48,20 @@ Startseite mit Nordstern, drei Türen (Spiel, Begleiter, Wissen).
 
 **Phase 2**  
 Erste Prototypen:  
-- XP-Tracker im Spiel  
+- Regal + Spiel‑Aggregation (Journal + Shelf)  
 - Journal im Begleiter  
-- Blog-Struktur im Wissen  
+- Wissen statisch  
 
 **Phase 3**  
-Verknüpfung: kleine Co-Op-Elemente, erste geteilte Inhalte für Freunde & Familie.  
+Verknüpfung: Story/Minispiele/Demos befüllen Shelf; Anzeige im Regal.  
 
 **Phase 4**  
-Ausbau & Politur: stabile Versionen, ggf. öffentliche Präsentation.
+KI‑Varianten lokal (Ollama), weitere Module (Garden/Tower/…), Politur & Doku.
+
+---
+
+## 6. Technik & Privacy by Design
+- Statisch, ohne Frameworks (HTML/CSS/JS), GitHub Pages‑fähig.
+- Lokaler Speicher: `localStorage` (Journal, Shelf, modul‑spezifische Keys).  
+- Lokale KI nur auf http:// (Mixed‑Content‑Regel); zentrale Helper `shared/ai.js` (Ping + Anfrage).  
+- Sicherheitsgrundsatz: kein Tracking, sicheres Rendering (DOM APIs, kein innerHTML für Nutztexte).

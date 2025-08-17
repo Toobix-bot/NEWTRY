@@ -46,7 +46,8 @@
 
   <script>
     const KEY = "vlfl_mining";
-    const JOURNAL = "vlfl_journal"; // für Artefakte (Anbindung an Spiel-Regal)
+  const JOURNAL = "vlfl_journal"; // historisch: Spiel-Regal liest auch Journal
+  const SHELF = "vlfl_shelf";     // neu: gemeinsames Regal
 
     const S = {
       ore: 0, stone: 0, energy: 10, maxEnergy: 10,
@@ -95,12 +96,16 @@
         const [name, ritual] = finds[Math.floor(rand()*finds.length)];
         const text = `🗝️ Artefakt: ${name}\n• Mini-Ritual: ${ritual}`;
         S.artifact = text;
-        // Auch ins Journal des heutigen Tages legen, damit es im Spiel-Regal erscheint
+        // Ins Journal (rückwärtskompatibel) und ins Shelf (neuer Regal‑Strom)
         try {
           const today = new Date().toISOString().slice(0,10);
           const j = JSON.parse(localStorage.getItem(JOURNAL) || "{}");
           j[today] = { ...(j[today]||{}), artifact: text };
           localStorage.setItem(JOURNAL, JSON.stringify(j));
+          const shelf = JSON.parse(localStorage.getItem(SHELF) || '[]');
+          const iso = new Date().toISOString();
+            shelf.unshift({ id:'mining-'+Math.random().toString(36).slice(2), kind:'mining', source:'Minenbergbau', title:`Fund: ${name}` , content: text, dateTime: iso, date: iso.slice(0,10) });
+          localStorage.setItem(SHELF, JSON.stringify(shelf.slice(0,200)));
         } catch {}
         updateUI();
         msg("Du hast ein Artefakt gefunden.");

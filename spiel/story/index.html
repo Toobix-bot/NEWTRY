@@ -26,11 +26,17 @@
       <span class="pill" id="progress"></span>
     </div>
 
+    <div class="row" style="margin:14px 0">
+      <button id="aiVariant" class="btn">KI‑Variante (lokal)</button>
+      <span id="aiState" class="muted"></span>
+    </div>
     <p><a href="../index.html">← Zurück zum Regal</a></p>
 
+    <script src="../../shared/ai.js"></script>
     <script>
-      // Offline-Modus: feste Szenen (deterministisch)
-      const story = [
+      // Story wird aus scenes.json geladen (offline-Datei). Fallback: minimale eingebaute Szenen.
+      let story = [];
+      const fallbackStory = [
         {
           id: 'ep1-1',
           text: 'Du trittst aus der Tür. Die Luft ist kühl, aber freundlich. Ein schmaler Pfad führt links zum alten Baum, rechts glitzert ein Bach.',
@@ -66,7 +72,7 @@
         localStorage.setItem('vlfl_shelf', JSON.stringify(arr.slice(0,200)));
       }
 
-      function render() {
+  function render() {
         const sc = story[state.i];
         const box = $('#scene');
         box.innerHTML = '';
@@ -91,7 +97,40 @@
       $('#prev').onclick = () => { state.i = Math.max(0, state.i - 1); render(); };
       $('#next').onclick = () => { state.i = Math.min(story.length - 1, state.i + 1); render(); };
 
-      render();
+      // KI‑Variante (nur lokal http://; Mixed Content auf https blockiert)
+      const aiBtn = document.getElementById('aiVariant');
+      const aiInfo = document.getElementById('aiState');
+      (async ()=>{
+        if(location.protocol === 'https:'){ aiInfo.textContent='KI auf HTTPS deaktiviert'; aiBtn.disabled=true; return; }
+        const res = await (window.VLFL_AI?.pingOllama?.() || Promise.resolve({ok:false}));
+        if(res.ok){ aiInfo.textContent='Ollama bereit'; aiBtn.disabled=false; } else { aiInfo.textContent='Ollama offline'; aiBtn.disabled=true; }
+      })();
+      aiBtn.onclick = async ()=>{
+        aiBtn.disabled = true; const sc = story[state.i]; aiInfo.textContent='Denke …';
+        try {
+          const prompt = `Schreibe eine sehr kurze, sanfte Varianten-Szene (2 Sätze) im gleichen Ton. Szene: ${sc.text}`;
+          const out = await window.VLFL_AI.askOllama(prompt);
+          // Leg als Artefakt ins Regal
+          const arr = JSON.parse(localStorage.getItem('vlfl_shelf')||'[]');
+          const iso = new Date().toISOString();
+          arr.unshift({ id:'storyai-'+Math.random().toString(36).slice(2), kind:'story', source:'Story (KI)', title:'Variante', content: out, dateTime: iso, date: iso.slice(0,10) });
+          localStorage.setItem('vlfl_shelf', JSON.stringify(arr.slice(0,200)));
+          aiInfo.textContent='Variante gespeichert';
+        } catch(e) { aiInfo.textContent='KI‑Fehler'; console.error(e); }
+        finally { aiBtn.disabled = false; }
+      };
+
+      // Szenen laden (lokal). Bei Fehlern Fallback nutzen.
+      (async function init(){
+        try {
+          const res = await fetch('./scenes.json', { cache: 'no-store' });
+          if (res.ok) {
+            const js = await res.json();
+            if (Array.isArray(js) && js.length) story = js; else story = fallbackStory;
+          } else { story = fallbackStory; }
+        } catch { story = fallbackStory; }
+        render();
+      })();
     </script>
   </body>
 </html>

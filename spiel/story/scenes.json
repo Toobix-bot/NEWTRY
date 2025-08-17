@@ -1,0 +1,46 @@
+[
+  {
+    "id": "ep1-1",
+    "text": "Du trittst aus der Tür. Die Luft ist kühl, aber freundlich. Ein schmaler Pfad führt links zum alten Baum, rechts glitzert ein Bach.",
+    "choices": [
+      {
+        "id": "baum",
+        "label": "Zum Baum",
+        "artifact": {
+          "title": "Wurzelblick",
+          "content": "📝 Wurzelblick\n• Hinweis: 30 Sekunden in die Ferne schauen.\n• Mini-Ritual: Spüre deine Fußsohlen."
+        }
+      },
+      {
+        "id": "bach",
+        "label": "Zum Bach",
+        "artifact": {
+          "title": "Leichtfluss",
+          "content": "📝 Leichtfluss\n• Hinweis: Einen Gedanken weiterziehen lassen.\n• Mini-Ritual: 3 Atemzüge, länger aus als ein."
+        }
+      }
+    ]
+  },
+  {
+    "id": "ep1-2",
+    "text": "Am Ziel bemerkst du: Nichts drängt. Hier darf es langsam sein. Ein kleiner Gegenstand liegt am Weg.",
+    "choices": [
+      {
+        "id": "stein",
+        "label": "Nimm den Stein",
+        "artifact": {
+          "title": "Taschenanker",
+          "content": "📝 Taschenanker\n• Hinweis: Hand an die Tasche, kurz erinnern: „Ich bin hier.“\n• Mini-Ritual: 1 tiefer Atemzug."
+        }
+      },
+      {
+        "id": "lassen",
+        "label": "Lass ihn liegen",
+        "artifact": {
+          "title": "Leerer Platz",
+          "content": "📝 Leerer Platz\n• Hinweis: Heute muss nichts dazu.\n• Mini-Ritual: 10 Sekunden bewusst nichts tun."
+        }
+      }
+    ]
+  }
+]

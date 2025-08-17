@@ -1,0 +1,13 @@
+{
+  "name": "vlfl-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static site with local Ollama proxy",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.2"
+  }
+}

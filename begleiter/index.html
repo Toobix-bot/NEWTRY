@@ -84,7 +84,8 @@
 
     <p><a href="../index.html">← Zurück zur Startseite</a></p>
 
-    <script>
+  <script src="../shared/ai.js"></script>
+  <script>
       // --- v0.3.1: Auto-Save, Datepicker, Merge-Import ----------------------
       // --- Helpers & Storage -----------------------------------------------
       const $ = sel => document.querySelector(sel);
@@ -234,29 +235,28 @@
       // Aktiv nur, wenn Seite NICHT via HTTPS läuft (gemäß Mixed-Content-Regeln)
       const aiInfo = document.getElementById('aiState');
       const aiBtn = document.getElementById('aiArtifact');
-
-      function isHttps() { return location.protocol === "https:"; }
-      function localAIEnabledByContext() { return !isHttps(); }
-
-      if (!localAIEnabledByContext()) {
-        aiInfo.textContent = "KI lokal ist auf HTTPS-Seiten deaktiviert (Sicherheitsgründe). Starte lokal über einen Dev-Server.";
-        aiBtn.disabled = true;
-      } else {
-        aiInfo.textContent = "Optional: Ollama lokal (http://localhost:11434).";
+      const isHttps = location.protocol === "https:";
+      async function updateAIStatusOnce(){
+        if(isHttps){ aiInfo.textContent = "KI lokal auf HTTPS-Seiten deaktiviert (Mixed-Content). Öffne die Seite lokal über http://"; aiBtn.disabled = true; return; }
+        aiInfo.textContent = "Prüfe Ollama …";
+        try {
+          const res = await (window.VLFL_AI?.pingOllama?.() || Promise.resolve({ok:false}));
+          if(res.ok){ aiInfo.textContent = "Ollama verbunden"; aiBtn.disabled = false; }
+          else { aiInfo.textContent = "Ollama nicht erreichbar (http://localhost:11434)"; aiBtn.disabled = true; }
+        } catch { aiInfo.textContent = "Ollama nicht erreichbar"; aiBtn.disabled = true; }
       }
+      updateAIStatusOnce();
+      setInterval(updateAIStatusOnce, 5000);
 
       async function callOllamaChat(userText) {
+        if (window.VLFL_AI?.askOllama) {
+          return window.VLFL_AI.askOllama(userText);
+        }
+        // Fallback, falls shared/ai.js nicht geladen wurde
         const res = await fetch("http://localhost:11434/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "gemma3:1b",
-            stream: false,
-            messages: [
-              { role: "system", content: "Du bist ein sanfter, verantwortungsvoller Reflexionspartner. Antworte kurz, respektvoll und konkret."},
-              { role: "user", content: userText }
-            ]
-          })
+          body: JSON.stringify({ model: "gemma3:1b", stream: false, messages: [{ role: "user", content: userText }] })
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();

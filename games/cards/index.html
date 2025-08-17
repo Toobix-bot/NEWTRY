@@ -40,9 +40,18 @@
       {k:"Humor", hint:"Worüber lächelst du?", ritual:"Hör 1 witzigen Clip."},
       {k:"Zutrauen", hint:"Was traust du dir zu?", ritual:"Sag dir innerlich: ‚Ich schaffe das.‘"}
     ];
+    function saveShelf(text, title){
+      try {
+        const arr = JSON.parse(localStorage.getItem('vlfl_shelf')||'[]');
+        const iso = new Date().toISOString();
+        arr.unshift({ id:'cards-'+Math.random().toString(36).slice(2), kind:'cards', source:'Echo‑Karten', title: title||'Karte', content:text, dateTime: iso, date: iso.slice(0,10) });
+        localStorage.setItem('vlfl_shelf', JSON.stringify(arr.slice(0,200)));
+      } catch {}
+    }
     document.getElementById("draw").onclick = () => {
       const c = deck[Math.floor(Math.random()*deck.length)];
       document.getElementById("out").textContent = `🃏 ${c.k}\n• Hinweis: ${c.hint}\n• Mini-Ritual: ${c.ritual}`;
+      saveShelf(`🃏 ${c.k}\n• Hinweis: ${c.hint}\n• Mini-Ritual: ${c.ritual}`, c.k);
     };
   </script>
 </body>

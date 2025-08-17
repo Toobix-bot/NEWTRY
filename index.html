@@ -1,42 +1,29 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Vom Leben fürs Leben</title>
-    <style>
-      :root { --card:#ffffff; --muted:#6b7280; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 16px; line-height: 1.6; }
-      h1 { text-align: center; margin-bottom: .2em }
-      p.leit { text-align:center; color: var(--muted); margin-top: .2em }
-      .doors { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; margin-top: 36px; }
-      .door { width: 220px; border: 1px solid #e5e7eb; border-radius: 14px; background: var(--card); box-shadow: 0 2px 6px rgba(0,0,0,.06); padding: 18px; transition: transform .15s ease; text-align:center; }
-      .door:hover { transform: translateY(-2px); }
-      a { color: inherit; text-decoration: none; }
-      footer { margin-top: 48px; text-align:center; color: var(--muted); font-size: .95rem }
-    </style>
-  </head>
-  <body>
-    <h1>Vom Leben fürs Leben</h1>
-    <p class="leit">
-      Ein wachsender Raum für Spiel, Klarheit und Verbindung. Mutig, echt und getragen – mit Freude, Nutzen und Sinn.
-    </p>
-
-    <div class="doors">
-      <a class="door" href="spiel/index.html">
-        <h2>🎮 Spiel</h2>
-        <p>Lebensspiel, Quests, Artefakte.</p>
-      </a>
-      <a class="door" href="begleiter/index.html">
-        <h2>🤖 Begleiter</h2>
-        <p>Plan &amp; Reflexion (sanft, privat).</p>
-      </a>
-      <a class="door" href="wissen/index.html">
-        <h2>📚 Wissen</h2>
-        <p>Sammlung, Blog, Deep Research.</p>
-      </a>
-    </div>
-
-    <footer>v0.2 • Prototyp • Architektur siehe ARCHITEKTUR.md</footer>
-  </body>
+<meta charset="utf-8" />
+<title>Gemma3:1b – Lokal</title>
+<body style="font-family:system-ui;max-width:720px;margin:40px auto">
+  <h1>Gemma3:1b lokal testen</h1>
+  <textarea id="prompt" rows="5" style="width:100%" placeholder="Frag was…"></textarea>
+  <br/><button id="send">Senden</button>
+  <pre id="out">Bereit…</pre>
+  <script>
+    const out = document.getElementById('out');
+    document.getElementById('send').onclick = async () => {
+      out.textContent = 'Denke…';
+      const prompt = document.getElementById('prompt').value || 'Sag Hallo in einem Satz.';
+  const res = await fetch('/ollama/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model: 'gemma3:1b',
+          messages: [{role:'user', content: prompt}],
+          stream: false
+        })
+      });
+      const data = await res.json();
+      out.textContent = data.message?.content ?? JSON.stringify(data, null, 2);
+    };
+  </script>
+</body>
 </html>
